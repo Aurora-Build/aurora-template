@@ -3,6 +3,7 @@
 ## Project info
 
 **URL**: {{AURORA_PROJECT_URL}}
+
 **Live Preview**: {{PROJECT_URL}}
 
 ## How can I edit this code?
