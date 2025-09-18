@@ -64,5 +64,5 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Aurora]({{PROJECT_URL}}) and click on Share -> Publish.
+Simply open [Aurora]({{AURORA_PROJECT_URL}}) and click on Share -> Publish.
 
