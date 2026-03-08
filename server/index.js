@@ -11,27 +11,35 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-// Auto-load routes from server/routes/
+// Dynamic route handler — loads route files on each request
+// This means new routes are picked up immediately without server restart
 const routesDir = join(__dirname, 'routes');
-if (existsSync(routesDir)) {
-    const files = readdirSync(routesDir).filter(f => f.endsWith('.js') || f.endsWith('.ts'));
-    for (const file of files) {
-        const routeName = file.replace(/\.(js|ts)$/, '');
-        try {
-            const mod = await import(join(routesDir, file));
-            const handler = mod.default || mod.handler;
-            if (handler) {
-                app.all(`/api/${routeName}`, handler);
-                console.log(`[server] Route loaded: /api/${routeName}`);
-            }
-        } catch (e) {
-            console.error(`[server] Failed to load route ${file}:`, e.message);
+
+app.use('/api', async (req, res, next) => {
+    const routeName = req.path.split('/')[1];
+    if (!routeName || routeName === 'health') return next();
+
+    const routePath = join(routesDir, routeName + '.js');
+    try {
+        // Cache-bust to always get latest version
+        const mod = await import(routePath + '?t=' + Date.now());
+        const handler = mod.default || mod.handler;
+        if (handler) {
+            return handler(req, res);
         }
+    } catch (e) {
+        // Route file doesn't exist or has errors
+        if (e.code === 'ERR_MODULE_NOT_FOUND') {
+            return res.status(404).json({ error: `Route /api/${routeName} not found` });
+        }
+        console.error(`[server] Error in /api/${routeName}:`, e.message);
+        return res.status(500).json({ error: `Server error in /api/${routeName}` });
     }
-}
+    next();
+});
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', routes: app._router?.stack?.filter(r => r.route)?.length || 0 });
+    res.json({ status: 'ok' });
 });
 
 app.listen(PORT, () => {
