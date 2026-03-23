@@ -5,8 +5,10 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const isProduction = process.env.NODE_ENV === 'production';
+const PORT = isProduction ? (process.env.PORT || 3000) : 3001;
+
 const app = express();
-const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
@@ -42,6 +44,13 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok' });
 });
 
-app.listen(PORT, () => {
-    console.log(`[server] API server running on http://localhost:${PORT}`);
+// Production: serve built static files and SPA fallback
+if (isProduction) {
+    const distPath = join(__dirname, '..', 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => res.sendFile(join(distPath, 'index.html')));
+}
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[server] ${isProduction ? 'Production' : 'API'} server running on http://localhost:${PORT}`);
 });
